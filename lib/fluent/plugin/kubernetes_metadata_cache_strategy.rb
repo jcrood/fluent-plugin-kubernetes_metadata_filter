@@ -37,8 +37,7 @@ module KubernetesMetadata
         ids = { pod_id: pod_metadata['pod_id'], namespace_id: namespace_metadata['namespace_id'] }
         if !ids[:pod_id].nil? && !ids[:namespace_id].nil?
           # pod found and namespace found
-          metadata = pod_metadata
-          metadata.merge!(namespace_metadata)
+          metadata = pod_metadata.merge(namespace_metadata)
         else
           if ids[:pod_id].nil? && !ids[:namespace_id].nil?
             # pod not found, but namespace found
@@ -51,7 +50,7 @@ module KubernetesMetadata
                 { 'pod_id' => ids[:pod_id] }
               end
             end
-            metadata.merge!(namespace_metadata)
+            metadata = metadata.merge(namespace_metadata)
           else
             if !ids[:pod_id].nil? && ids[:namespace_id].nil?
               # pod found, but namespace NOT found
@@ -78,12 +77,12 @@ module KubernetesMetadata
         @id_cache[key] = ids unless batch_miss_cache.key?("#{namespace_name}_#{pod_name}")
       else
         # SLOW PATH
-        metadata = @cache.fetch(ids[:pod_id]) do
+        pod_metadata = @cache.fetch(ids[:pod_id]) do
           @stats.bump(:pod_cache_miss)
           m = fetch_pod_metadata(namespace_name, pod_name)
           m.nil? || m.empty? ? { 'pod_id' => ids[:pod_id] } : m
         end
-        metadata.merge!(@namespace_cache.fetch(ids[:namespace_id]) do
+        metadata = pod_metadata.merge(@namespace_cache.fetch(ids[:namespace_id]) do
           m = unless @skip_namespace_metadata
                 @stats.bump(:namespace_cache_miss)
                 fetch_namespace_metadata(namespace_name)
